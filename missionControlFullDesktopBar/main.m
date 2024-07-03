@@ -51,10 +51,8 @@ int main(int argc, const char *argv[])
             setupDaemon();
             
         } else if (appIsAlreadyRunning()) {
-            // Don't want to interfere with an already running instance of this
-            // app, so we just invoke Mission Control and quit
+            // Don't want to interfere with an already running instance of this app
             NSLog(@"Already running");
-            invokeMissionControl();
             return 0;
         }
         

@@ -74,6 +74,11 @@ void invokeMissionControl()
 
 void releaseMissionControl()
 {
+    if (!daemonized) {
+        printf("-r / --release is only supported when running in daemonized (-d / --daemon) mode\n");
+        return;
+    }
+
     double timeSince = lastMissionControlInvocationTime ? -[lastMissionControlInvocationTime timeIntervalSinceNow] : 0;
     bool alreadyInMissionControl = false;
     determineIfInMissionControl(&alreadyInMissionControl);
@@ -83,7 +88,7 @@ void releaseMissionControl()
         invokeMissionControl();
         cleanUpAndFinish();
     } else {
-        printf("Release: not in Mission Control or too soon after initial trigger, so not doing anything");
+        printf("Release: not in Mission Control or too soon after initial trigger, so not doing anything\n");
     }
 }
 
@@ -155,7 +160,7 @@ static CFDataRef receivedMessageAsDaemon(CFMessagePortRef port, SInt32 messageID
 {
     CommandLineArgs args;
     CFDataGetBytes(data, CFRangeMake(0, sizeof(args)), (UInt8 *)&args);
-    printf("Daemon: received signal. Args: %d %d %d %d %d %d", args.daemon, args.daemonized, args.release, args.method,
+    printf("Daemon: received signal. Args: %d %d %d %d %d %d\n", args.daemon, args.daemonized, args.release, args.method,
            args.wiggleDuration, args.internalMouseDown);
     showMissionControlWithFullDesktopBar(&args);
     return NULL;

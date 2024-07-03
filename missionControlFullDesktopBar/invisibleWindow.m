@@ -136,9 +136,10 @@ InvisibleView * sharedInvisibleView()
 {
     [self removeAbortTimer];
     
-    // We're giving ourselves half a second for the drag to occur, otherwise we abort.
-    abortTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 repeats:NO block:^(NSTimer *timer) {
-        printf("Drag never occurred -- ending\n");
+    // We're giving ourselves a fraction of a second for the drag to occur on its own, otherwise
+    // we give up and trigger a cleanup. Interestingly, this triggers the drag event.
+    abortTimer = [NSTimer scheduledTimerWithTimeInterval:0.05 repeats:NO block:^(NSTimer *timer) {
+        printf("Drag timer expired -- forcing clean up\n");
         cleanUpAndFinish();
     }];
 }

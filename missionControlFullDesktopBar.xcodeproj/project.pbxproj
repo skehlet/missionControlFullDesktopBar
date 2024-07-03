@@ -143,6 +143,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -286,6 +287,7 @@
 				);
 				INFOPLIST_FILE = missionControlFullDesktopBar/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_BUNDLE_IDENTIFIER = net.briankendall.missionControlFullDesktopBar;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -302,6 +304,7 @@
 				);
 				INFOPLIST_FILE = missionControlFullDesktopBar/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_BUNDLE_IDENTIFIER = net.briankendall.missionControlFullDesktopBar;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
