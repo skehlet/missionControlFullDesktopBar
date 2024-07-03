@@ -72,32 +72,63 @@ void invokeMissionControl()
     lastMissionControlInvocationTime = [NSDate date];
 }
 
-void releaseMissionControl()
+/*
+ On key down: close Mission Control if it's open, otherwise open it.
+*/
+void onMissionControlKeyDown(CommandLineArgs *args)
 {
-    double timeSince = lastMissionControlInvocationTime ? -[lastMissionControlInvocationTime timeIntervalSinceNow] : 0;
     bool alreadyInMissionControl = false;
     determineIfInMissionControl(&alreadyInMissionControl);
-    
-    if (timeSince > 0.5 && alreadyInMissionControl) {
-        printf("Released mission control trigger when in mission control after adequate time!\n");
+    if (alreadyInMissionControl) {
+        printf("onMissionControlKeyDown: closing Mission Control\n");
         invokeMissionControl();
         cleanUpAndFinish();
     } else {
-        printf("Release: not in Mission Control or too soon after initial trigger, so not doing anything");
+        printf("onMissionControlKeyDown: opening Mission Control\n");
+        if (args->method == kMethodWiggle) {
+            showMissionControlWithFullDesktopBarUsingWiggleMethod(args->wiggleDuration);
+        } else if (args->method == kMethodDrag) {
+            showMissionControlWithFullDesktopBarUsingDragMethod(args->internalMouseDown);
+        } else if (args->method == kMethodCursorPosition) {
+            showMissionControlWithFullDesktopBarUsingCursorPositionMethod();
+        } else {
+            // should never happen, default is kMethodDrag
+            cleanUpAndFinish();
+        }
+    }
+}
+
+/*
+ On key up: close Mission Control IFF the button has been held down for over a
+ 1/2 second (a long press). This is only supported in daemonized mode.
+*/
+void onMissionControlKeyUp()
+{
+    if (!daemonized) {
+        printf("-r / --release is only supported when running in daemonized (-d / --daemon) mode\n");
+        return;
+    }
+    
+    double timeSince = lastMissionControlInvocationTime ? -[lastMissionControlInvocationTime timeIntervalSinceNow] : 0;
+    bool alreadyInMissionControl = false;
+    determineIfInMissionControl(&alreadyInMissionControl);
+
+    if (timeSince > 0.5 && alreadyInMissionControl) {
+        printf("Released mission control trigger when in mission control after adequate time!\n");
+        invokeMissionControl();
+    } else {
+        printf("Release: not in Mission Control or too soon after initial trigger, so not doing anything\n");
     }
 }
 
 void showMissionControlWithFullDesktopBar(CommandLineArgs *args)
 {
-    if (args->release) {
-        releaseMissionControl();
-    } else if (args->method == kMethodWiggle) {
-        showMissionControlWithFullDesktopBarUsingWiggleMethod(args->wiggleDuration);
-    } else if (args->method == kMethodDrag) {
-        showMissionControlWithFullDesktopBarUsingDragMethod(args->internalMouseDown);
-    } else if (args->method == kMethodCursorPosition) {
-        showMissionControlWithFullDesktopBarUsingCursorPositionMethod();
+    bool isKeyDown = !args->release;
+    if (isKeyDown) {
+        onMissionControlKeyDown(args);
+        // activate functions handle their own cleanUpAndFinish()
     } else {
+        onMissionControlKeyUp();
         cleanUpAndFinish();
     }
 }
@@ -155,7 +186,7 @@ static CFDataRef receivedMessageAsDaemon(CFMessagePortRef port, SInt32 messageID
 {
     CommandLineArgs args;
     CFDataGetBytes(data, CFRangeMake(0, sizeof(args)), (UInt8 *)&args);
-    printf("Daemon: received signal. Args: %d %d %d %d %d %d", args.daemon, args.daemonized, args.release, args.method,
+    printf("Daemon: received signal. Args: %d %d %d %d %d %d\n", args.daemon, args.daemonized, args.release, args.method,
            args.wiggleDuration, args.internalMouseDown);
     showMissionControlWithFullDesktopBar(&args);
     return NULL;

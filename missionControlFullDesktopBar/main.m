@@ -52,9 +52,7 @@ int main(int argc, const char *argv[])
             
         } else if (appIsAlreadyRunning()) {
             // Don't want to interfere with an already running instance of this
-            // app, so we just invoke Mission Control and quit
             NSLog(@"Already running");
-            invokeMissionControl();
             return 0;
         }
         

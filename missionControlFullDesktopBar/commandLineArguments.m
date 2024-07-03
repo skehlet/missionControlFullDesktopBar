@@ -101,10 +101,10 @@ bool parseCommandLineArgs(CommandLineArgs *args, int argc, const char *argv[])
         printf("                                    and it will not spawn another daemon.\n");
         printf("  -r, --release                     Indicates that a button that should trigger\n");
         printf("                                    Mission Control has been released. Basically\n");
-        printf("                                    if this option is used within 500 ms of\n");
+        printf("                                    if this option is used after 500 ms of\n");
         printf("                                    invoking Mission Control, will uninvoke\n");
         printf("                                    Mission Control, otherwise nothing happens.\n");
-        printf("                                    Only has an effect when used with a daemon.\n");
+        printf("                                    Only supported when used with a daemon\n");
         printf("                                    process. All other options have no effect\n");
         printf("                                    when used with -r / --release.\n");
         printf("  -m, --method <wiggle/drag/cursor> Selects the method to use. Current options\n");
