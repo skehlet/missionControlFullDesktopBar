@@ -71,21 +71,7 @@ void processWiggleEventAndPostNext(CGEventRef event)
 
 void showMissionControlWithFullDesktopBarUsingWiggleMethod(int inWiggleDuration)
 {
-    bool alreadyInMissionControl = false;
-    
-    if (!determineIfInMissionControl(&alreadyInMissionControl)) {
-        return;
-    }
-    
     invokeMissionControl();
-    
-    if (alreadyInMissionControl) {
-        // No need to do any cursor wiggling if we're already in Mission
-        // Control, so in that case we can just quit here.
-        printf("Already in Mission Control\n");
-        cleanUpAndFinish();
-        return;
-    }
     
     if (wigglingInProgress) {
         printf("Already wiggling\n");

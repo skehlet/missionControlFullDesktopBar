@@ -90,19 +90,6 @@ void positionInvisibleWindowUnderCursorAndOrderFront(CGPoint flippedP)
 
 void showMissionControlWithFullDesktopBarUsingDragMethod(bool useInternalMouseDown)
 {
-    bool alreadyInMissionControl = false;
-    
-    if (!determineIfInMissionControl(&alreadyInMissionControl)) {
-        return;
-    }
-    
-    if (alreadyInMissionControl) {
-        printf("Already in mission control\n");
-        invokeMissionControl();
-        cleanUpAndFinish();
-        return;
-    }
-    
     if ([NSEvent pressedMouseButtons] & 0x01) {
         printf("Mouse is already pressed\n");
         invokeMissionControl();
