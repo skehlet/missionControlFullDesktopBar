@@ -51,7 +51,7 @@ int main(int argc, const char *argv[])
             setupDaemon();
             
         } else if (appIsAlreadyRunning()) {
-            // Don't want to interfere with an already running instance of this
+            // Don't want to interfere with an already running instance of this app
             NSLog(@"Already running");
             return 0;
         }

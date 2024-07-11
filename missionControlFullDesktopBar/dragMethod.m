@@ -99,12 +99,14 @@ void showMissionControlWithFullDesktopBarUsingDragMethod(bool useInternalMouseDo
     if (alreadyInMissionControl) {
         printf("Already in mission control\n");
         invokeMissionControl();
+        cleanUpAndFinish();
         return;
     }
     
     if ([NSEvent pressedMouseButtons] & 0x01) {
         printf("Mouse is already pressed\n");
         invokeMissionControl();
+        cleanUpAndFinish();
         return;
     }
     
