@@ -1,6 +1,10 @@
 #import <Cocoa/Cocoa.h>
+#import <os/log.h>
 #import "app.h"
 #import "util.h"
+
+// To tail the logs:
+// log stream --process missionControlFullDesktopBar
 
 int main(int argc, const char *argv[])
 {
@@ -16,12 +20,12 @@ int main(int argc, const char *argv[])
                 return 0;
             }
             forkDaemon(argc, argv);
-            printf("[%d] Parent forked, exiting\n", getpid());
+            os_log(OS_LOG_DEFAULT, "[%d] Parent forked, exiting\n", getpid());
             exit(0);
             
         } else {
             // child, re-executed
-            printf("[%d] Child in re-exec, becoming a daemon\n", getpid());
+            os_log(OS_LOG_DEFAULT, "[%d] Child in re-exec, becoming a daemon\n", getpid());
             NSApplicationLoad();
             setupDaemon();
             signalDaemon();

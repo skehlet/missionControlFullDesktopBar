@@ -1,4 +1,5 @@
 #import <Cocoa/Cocoa.h>
+#import <os/log.h>
 #import "invisibleWindow.h"
 #import "app.h"
 #import "dragMethod.h"
@@ -88,7 +89,7 @@ InvisibleView * sharedInvisibleView(void)
         return;
     }
     
-    printf("[%ld] Received mouse down in invisible view\n", getCurrentTimeInMicrosecondsSinceLastCall());
+    os_log(OS_LOG_DEFAULT, "[%ld] Received mouse down in invisible view\n", getCurrentTimeInMicrosecondsSinceLastCall());
     [self createAbortTimer];
     
     // Having received a mouse down event, we initiate a drag, as when a drag is in
@@ -113,13 +114,13 @@ InvisibleView * sharedInvisibleView(void)
     draggingSession.animatesToStartingPositionsOnCancelOrFail = NO;
     draggingSession.draggingFormation = NSDraggingFormationNone;
     
-    printf("[%ld] mouseDown done, waiting for drag event\n", getCurrentTimeInMicrosecondsSinceLastCall());
+    os_log(OS_LOG_DEFAULT, "[%ld] mouseDown done, waiting for drag event\n", getCurrentTimeInMicrosecondsSinceLastCall());
     appMouseUp(); // this seems to fire the drag event quicker
 }
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
 {
-    printf("[%ld] Received drag event, invoking Mission Control...\n", getCurrentTimeInMicrosecondsSinceLastCall());
+    os_log(OS_LOG_DEFAULT, "[%ld] Received drag event, invoking Mission Control...\n", getCurrentTimeInMicrosecondsSinceLastCall());
     // At this point we know the drag is successfully in progress, so we can invoke
     // Mission Control and immediately post an event to release the mouse button and
     // thus end the drag. With any luck, both the user and macOS should be none
@@ -143,8 +144,8 @@ InvisibleView * sharedInvisibleView(void)
     
     // We're giving ourselves a fraction of a second for the drag to occur on its own, otherwise
     // we give up and trigger a cleanup. Interestingly, this triggers the drag event.
-    abortTimer = [NSTimer scheduledTimerWithTimeInterval:0.05 repeats:NO block:^(NSTimer *timer) {
-        printf("Drag timer expired -- forcing clean up\n");
+    abortTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 repeats:NO block:^(NSTimer *timer) {
+        os_log(OS_LOG_DEFAULT, "Drag timer expired -- forcing clean up\n");
         cleanUpAndFinish();
     }];
 }

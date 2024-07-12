@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 #import <unistd.h>
+#import <os/log.h>
 #import "CGSPrivate.h"
 #import "events.h"
 #import "app.h"
@@ -63,7 +64,7 @@ void removeClickableWindowTimer(void)
 void checkWindowClickable(CGPoint p, CFTimeInterval startTime)
 {
     if (screenPositionContainsWindowOfThisApp(p.x, p.y)) {
-        printf("Posting mouse event\n");
+        os_log(OS_LOG_DEFAULT, "Posting mouse event\n");
         removeClickableWindowTimer();
         
         // Now we click down on the window. The next step occurs when the window receives a mouseDown event
@@ -73,7 +74,7 @@ void checkWindowClickable(CGPoint p, CFTimeInterval startTime)
     
     if ((CACurrentMediaTime() - startTime) > 0.5) {
         // A safeguard against the window never becoming visible
-        printf("Error: Invisible window was never clickable... aborting!\n");
+        os_log(OS_LOG_DEFAULT, "Error: Invisible window was never clickable... aborting!\n");
         removeClickableWindowTimer();
         cleanUpAndFinish();
     }
@@ -92,7 +93,7 @@ void positionInvisibleWindowUnderCursorAndOrderFront(CGPoint flippedP)
 void showMissionControlWithFullDesktopBarUsingDragMethod(void)
 {
     if ([NSEvent pressedMouseButtons] & 0x01) {
-        printf("Mouse is already pressed\n");
+        os_log(OS_LOG_DEFAULT, "Mouse is already pressed\n");
         toggleMissionControl();
         cleanUpAndFinish();
         return;
@@ -108,12 +109,12 @@ void showMissionControlWithFullDesktopBarUsingDragMethod(void)
     // the window a mouse event directly doesn't trigger a drag event unless
     // the window has received at least one regular mouse event already.
     if ([sharedInvisibleView() hasReceivedAnyMouseDowns]) {
-        printf("[%ld] Posting internal mouse event\n", getCurrentTimeInMicrosecondsSinceLastCall());
+        os_log(OS_LOG_DEFAULT, "[%ld] Posting internal mouse event\n", getCurrentTimeInMicrosecondsSinceLastCall());
         postInternalMouseEvent(NSEventTypeLeftMouseDown, sharedInvisibleWindow());
         appMouseIsDown = true;
         
     } else {
-        printf("[%ld] Waiting for window to be clickable\n", getCurrentTimeInMicrosecondsSinceLastCall());
+        os_log(OS_LOG_DEFAULT, "[%ld] Waiting for window to be clickable\n", getCurrentTimeInMicrosecondsSinceLastCall());
         
         // This should hopefully ensure the window becomes visible and appears on top of everything:
         CGSSetWindowLevel(CGSMainConnectionID(),
@@ -154,7 +155,7 @@ void dragMethodCleanUp(void)
 
 void appMouseUp(void)
 {
-    printf("appMouseUp\n");
+    os_log(OS_LOG_DEFAULT, "appMouseUp\n");
     if (appMouseIsDown) {
         postInternalMouseEvent(NSEventTypeLeftMouseUp, sharedInvisibleWindow());
         appMouseIsDown = false;

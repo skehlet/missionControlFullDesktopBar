@@ -2,9 +2,11 @@
 #import "app.h"
 #import "dragMethod.h"
 #import "util.h"
+#import <os/log.h>
 
 static CFMessagePortRef localPort = nil;
 static CFRunLoopSourceRef localPortRunLoopSource = nil;
+static bool isRunning = false;
 
 // Sets the memory result points to to true if Mission Control is up. Returns true if able to
 // successfully determine the state of Mission Control, false if an error occurred.
@@ -73,19 +75,20 @@ void handleMissionControl(void)
     bool alreadyInMissionControl = false;
     determineIfInMissionControl(&alreadyInMissionControl);
     if (alreadyInMissionControl) {
-        printf("handleMissionControl: closing Mission Control\n");
+        os_log(OS_LOG_DEFAULT, "handleMissionControl: closing Mission Control\n");
         toggleMissionControl();
         cleanUpAndFinish();
     } else {
-        printf("[%ld] handleMissionControl: firing drag event then opening Mission Control...\n", getCurrentTimeInMicrosecondsSinceLastCall());
+        os_log(OS_LOG_DEFAULT, "[%ld] handleMissionControl: firing drag event then opening Mission Control...\n", getCurrentTimeInMicrosecondsSinceLastCall());
         showMissionControlWithFullDesktopBarUsingDragMethod();
     }
 }
 
 void cleanUpAndFinish(void)
 {
-    printf("Cleaning up\n");
+    os_log(OS_LOG_DEFAULT, "Cleaning up\n");
     dragMethodCleanUp();
+    isRunning = false;
 }
 
 bool signalDaemon(void)
@@ -94,7 +97,7 @@ bool signalDaemon(void)
                                                             CFSTR("com.stevekehlet.missionControlFullDesktopBar"));
     
     if (!remotePort) {
-        printf("Error communicating with daemon.\n");
+        os_log(OS_LOG_DEFAULT, "Error communicating with daemon.\n");
         return false;
     }
     
@@ -116,8 +119,13 @@ static CFDataRef receivedMessageAsDaemon(CFMessagePortRef port, SInt32 messageID
 {
     UInt8 junk;
     CFDataGetBytes(data, CFRangeMake(0, sizeof(&junk)), (UInt8 *)&junk);
-    printf("Daemon: received signal\n");
-    handleMissionControl();
+    if (isRunning) {
+        os_log(OS_LOG_DEFAULT, "Daemon: received signal, but ignoring because I'm already running\n");
+    } else {
+        os_log(OS_LOG_DEFAULT, "Daemon: received signal, handling\n");
+        isRunning = true;
+        handleMissionControl();
+    }
     return NULL;
 }
 
@@ -153,7 +161,7 @@ void forkDaemon(int argc, const char *argv[])
         return;
     }
 
-    printf("[%d] Child reexecuting as daemon\n", getpid());
+    os_log(OS_LOG_DEFAULT, "[%d] Child reexecuting as daemon\n", getpid());
     const char *newArgs[argc+2];
     for(int i = 0; i < argc; ++i) {
         newArgs[i] = argv[i];
