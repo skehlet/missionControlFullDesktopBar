@@ -9,8 +9,8 @@
 - (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context;
 @end
 
-NSWindow * sharedInvisibleWindow();
-InvisibleView * sharedInvisibleView();
-bool sharedInvisibleWindowExists();
+NSWindow * sharedInvisibleWindow(void);
+InvisibleView * sharedInvisibleView(void);
+bool sharedInvisibleWindowExists(void);
 
 #endif /* invisibleWindow_h */

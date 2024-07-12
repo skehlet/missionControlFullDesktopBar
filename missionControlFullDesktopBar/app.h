@@ -7,14 +7,13 @@
 #define kMessageMissionControlTriggerReleased 2
 
 bool determineIfInMissionControl(bool *result);
-void invokeMissionControl();
-void releaseMissionControl();
-void showMissionControlWithFullDesktopBar(CommandLineArgs *args);
-void cleanUpAndFinish();
-bool signalDaemon(CommandLineArgs *args);
-void setupDaemon();
-void becomeDaemon(int argc, const char *argv[]);
+void toggleMissionControl(void);
+void handleMissionControl(void);
+void cleanUpAndFinish(void);
+bool signalDaemon(void);
+void setupDaemon(void);
+void forkDaemon(int argc, const char *argv[]);
 void ensureAppStopsAfterDuration(double durationMS);
-void removeAppStopTimer();
+void removeAppStopTimer(void);
 
 #endif /* app_h */

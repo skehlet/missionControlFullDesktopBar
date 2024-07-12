@@ -1,15 +1,10 @@
 #import <Cocoa/Cocoa.h>
 #import "app.h"
-#import "wiggleMethod.h"
 #import "dragMethod.h"
-#import "cursorPositionMethod.h"
-#import "eventTap.h"
+#import "util.h"
 
-static bool daemonized = false;
 static CFMessagePortRef localPort = nil;
 static CFRunLoopSourceRef localPortRunLoopSource = nil;
-static NSDate *lastMissionControlInvocationTime = nil;
-static NSTimer *appStopTimer = nil;
 
 // Sets the memory result points to to true if Mission Control is up. Returns true if able to
 // successfully determine the state of Mission Control, false if an error occurred.
@@ -60,117 +55,52 @@ bool determineIfInMissionControl(bool *result)
     
     CFRelease(children);
     CFRelease(dockElement);
-    
     return true;
 }
 
-void invokeMissionControl()
+void toggleMissionControl(void)
 {
     // Using some undocumented API's here!
     extern int CoreDockSendNotification(CFStringRef);
     CoreDockSendNotification(CFSTR("com.apple.expose.awake"));
-    lastMissionControlInvocationTime = [NSDate date];
 }
 
 /*
- On key down: close Mission Control if it's open, otherwise open it.
+ Close Mission Control if it's open, otherwise open it.
 */
-void onMissionControlKeyDown(CommandLineArgs *args)
+void handleMissionControl(void)
 {
     bool alreadyInMissionControl = false;
     determineIfInMissionControl(&alreadyInMissionControl);
     if (alreadyInMissionControl) {
-        printf("onMissionControlKeyDown: closing Mission Control\n");
-        invokeMissionControl();
+        printf("handleMissionControl: closing Mission Control\n");
+        toggleMissionControl();
         cleanUpAndFinish();
     } else {
-        printf("onMissionControlKeyDown: opening Mission Control\n");
-        if (args->method == kMethodWiggle) {
-            showMissionControlWithFullDesktopBarUsingWiggleMethod(args->wiggleDuration);
-        } else if (args->method == kMethodDrag) {
-            showMissionControlWithFullDesktopBarUsingDragMethod(args->internalMouseDown);
-        } else if (args->method == kMethodCursorPosition) {
-            showMissionControlWithFullDesktopBarUsingCursorPositionMethod();
-        } else {
-            // should never happen, default is kMethodDrag
-            cleanUpAndFinish();
-        }
+        printf("[%ld] handleMissionControl: firing drag event then opening Mission Control...\n", getCurrentTimeInMicrosecondsSinceLastCall());
+        showMissionControlWithFullDesktopBarUsingDragMethod();
     }
 }
 
-/*
- On key up: close Mission Control IFF the button has been held down for over a
- 1/2 second (a long press). This is only supported in daemonized mode.
-*/
-void onMissionControlKeyUp()
-{
-    if (!daemonized) {
-        printf("-r / --release is only supported when running in daemonized (-d / --daemon) mode\n");
-        return;
-    }
-    
-    double timeSince = lastMissionControlInvocationTime ? -[lastMissionControlInvocationTime timeIntervalSinceNow] : 0;
-    bool alreadyInMissionControl = false;
-    determineIfInMissionControl(&alreadyInMissionControl);
-
-    if (timeSince > 0.5 && alreadyInMissionControl) {
-        printf("Released mission control trigger when in mission control after adequate time!\n");
-        invokeMissionControl();
-    } else {
-        printf("Release: not in Mission Control or too soon after initial trigger, so not doing anything\n");
-    }
-}
-
-void showMissionControlWithFullDesktopBar(CommandLineArgs *args)
-{
-    bool isKeyDown = !args->release;
-    if (isKeyDown) {
-        onMissionControlKeyDown(args);
-        // activate functions handle their own cleanUpAndFinish()
-    } else {
-        onMissionControlKeyUp();
-        cleanUpAndFinish();
-    }
-}
-
-void cleanUpAndFinish()
+void cleanUpAndFinish(void)
 {
     printf("Cleaning up\n");
-    stopEventTap();
-    wiggleMethodCleanUp();
     dragMethodCleanUp();
-    cursorPositionMethodCleanUp();
-    
-    if (!daemonized) {
-        printf("Shutting down\n");
-        destroyEventTap();
-        
-        if (localPortRunLoopSource) {
-            CFRelease(localPortRunLoopSource);
-            localPortRunLoopSource = nil;
-        }
-        
-        if (localPort) {
-            CFRelease(localPort);
-            localPort = nil;
-        }
-        
-        [NSApp terminate:0];
-    }
 }
 
-bool signalDaemon(CommandLineArgs *args)
+bool signalDaemon(void)
 {
     CFMessagePortRef remotePort = CFMessagePortCreateRemote(nil,
-                                                            CFSTR("net.briankendall.missionControlFullDesktopBar"));
+                                                            CFSTR("com.stevekehlet.missionControlFullDesktopBar"));
     
     if (!remotePort) {
-        printf("Could not create remote port for signalling daemon, probably because it doesn't exist\n");
+        printf("Error communicating with daemon.\n");
         return false;
     }
     
+    UInt8 junk = 1;
     CFTimeInterval timeout = 3.0;
-    CFDataRef data = CFDataCreate(NULL, (UInt8 *)args, sizeof(*args));
+    CFDataRef data = CFDataCreate(NULL, (UInt8 *)&junk, sizeof(&junk));
     SInt32 status = CFMessagePortSendRequest(remotePort, 0, data, timeout, timeout, nil, nil);
     
     if (status != kCFMessagePortSuccess) {
@@ -184,24 +114,21 @@ bool signalDaemon(CommandLineArgs *args)
 
 static CFDataRef receivedMessageAsDaemon(CFMessagePortRef port, SInt32 messageID, CFDataRef data, void *info)
 {
-    CommandLineArgs args;
-    CFDataGetBytes(data, CFRangeMake(0, sizeof(args)), (UInt8 *)&args);
-    printf("Daemon: received signal. Args: %d %d %d %d %d %d\n", args.daemon, args.daemonized, args.release, args.method,
-           args.wiggleDuration, args.internalMouseDown);
-    showMissionControlWithFullDesktopBar(&args);
+    UInt8 junk;
+    CFDataGetBytes(data, CFRangeMake(0, sizeof(&junk)), (UInt8 *)&junk);
+    printf("Daemon: received signal\n");
+    handleMissionControl();
     return NULL;
 }
 
-void quitDaemon()
+void quitDaemon(void)
 {
-    daemonized = false;
     cleanUpAndFinish();
 }
 
-void setupDaemon()
+void setupDaemon(void)
 {
-    daemonized = true;
-    localPort = CFMessagePortCreateLocal(nil, CFSTR("net.briankendall.missionControlFullDesktopBar"),
+    localPort = CFMessagePortCreateLocal(nil, CFSTR("com.stevekehlet.missionControlFullDesktopBar"),
                                          receivedMessageAsDaemon, nil, nil);
     CFRunLoopSourceRef localPortRunLoopSource = CFMessagePortCreateRunLoopSource(nil, localPort, 0);
     CFRunLoopAddSource(CFRunLoopGetCurrent(), localPortRunLoopSource, kCFRunLoopCommonModes);
@@ -218,39 +145,20 @@ void setupDaemon()
                                                                 usingBlock:^(NSNotification *notification) { quitDaemon(); }];
 }
 
-void becomeDaemon(int argc, const char *argv[])
+void forkDaemon(int argc, const char *argv[])
 {
-    if (fork() == 0) {
-        printf("Running as daemon\n");
-        const char *newArgs[argc+2];
-        
-        for(int i = 0; i < argc; ++i) {
-            newArgs[i] = argv[i];
-        }
-        
-        newArgs[argc] = "--daemonized";
-        newArgs[argc+1] = NULL;
-        execve(newArgs[0], (char * const *)newArgs, NULL);
+    pid_t pid = fork();
+    if (pid > 0) {
+        // parent
+        return;
     }
-}
 
-void removeAppStopTimer()
-{
-    if (appStopTimer && [appStopTimer isValid]) {
-        [appStopTimer invalidate];
-        appStopTimer = nil;
+    printf("[%d] Child reexecuting as daemon\n", getpid());
+    const char *newArgs[argc+2];
+    for(int i = 0; i < argc; ++i) {
+        newArgs[i] = argv[i];
     }
-}
-
-void ensureAppStopsAfterDuration(double durationMS)
-{
-    removeAppStopTimer();
-    appStopTimer = [NSTimer scheduledTimerWithTimeInterval:(durationMS / 1000.0)
-                                                    target:[NSBlockOperation blockOperationWithBlock:^{
-        NSLog(@"Error: emergency stop timer has fired");
-        cleanUpAndFinish();
-    }]
-                                                  selector:@selector(main)
-                                                  userInfo:nil
-                                                   repeats:NO];
+    newArgs[argc] = "--daemonized";
+    newArgs[argc+1] = NULL;
+    execve(newArgs[0], (char * const *)newArgs, NULL);
 }

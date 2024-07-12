@@ -4,6 +4,7 @@
 #import "events.h"
 #import "app.h"
 #import "invisibleWindow.h"
+#import "util.h"
 
 static bool mouseIsDown = false;
 static bool appMouseIsDown = false;
@@ -51,7 +52,7 @@ bool screenPositionContainsWindowOfThisApp(int x, int y)
     return isNotApplication;
 }
 
-void removeClickableWindowTimer()
+void removeClickableWindowTimer(void)
 {
     if (clickableWindowTimer && [clickableWindowTimer isValid]) {
         [clickableWindowTimer invalidate];
@@ -88,11 +89,11 @@ void positionInvisibleWindowUnderCursorAndOrderFront(CGPoint flippedP)
     [sharedInvisibleWindow() makeKeyAndOrderFront:NSApp];
 }
 
-void showMissionControlWithFullDesktopBarUsingDragMethod(bool useInternalMouseDown)
+void showMissionControlWithFullDesktopBarUsingDragMethod(void)
 {
     if ([NSEvent pressedMouseButtons] & 0x01) {
         printf("Mouse is already pressed\n");
-        invokeMissionControl();
+        toggleMissionControl();
         cleanUpAndFinish();
         return;
     }
@@ -106,13 +107,13 @@ void showMissionControlWithFullDesktopBarUsingDragMethod(bool useInternalMouseDo
     // Because we are in the realm of unholy hacks, for whatever reason sending
     // the window a mouse event directly doesn't trigger a drag event unless
     // the window has received at least one regular mouse event already.
-    if (useInternalMouseDown && [sharedInvisibleView() hasReceivedAnyMouseDowns]) {
-        printf("Posting internal mouse event\n");
+    if ([sharedInvisibleView() hasReceivedAnyMouseDowns]) {
+        printf("[%ld] Posting internal mouse event\n", getCurrentTimeInMicrosecondsSinceLastCall());
         postInternalMouseEvent(NSEventTypeLeftMouseDown, sharedInvisibleWindow());
         appMouseIsDown = true;
         
     } else {
-        printf("Waiting for window to be clickable\n");
+        printf("[%ld] Waiting for window to be clickable\n", getCurrentTimeInMicrosecondsSinceLastCall());
         
         // This should hopefully ensure the window becomes visible and appears on top of everything:
         CGSSetWindowLevel(CGSMainConnectionID(),
@@ -131,8 +132,10 @@ void showMissionControlWithFullDesktopBarUsingDragMethod(bool useInternalMouseDo
     }
 }
 
-void dragMethodCleanUp()
+void dragMethodCleanUp(void)
 {
+    removeClickableWindowTimer();
+    
     if (mouseIsDown) {
         CGPoint p = currentMouseLocation();
         postLeftMouseButtonEvent(kCGEventLeftMouseUp, p.x, p.y);
@@ -144,10 +147,16 @@ void dragMethodCleanUp()
         appMouseIsDown = false;
     }
     
-    removeClickableWindowTimer();
-    
     if (sharedInvisibleWindowExists()) {
         [sharedInvisibleWindow() orderOut:nil];
     }
 }
 
+void appMouseUp(void)
+{
+    printf("appMouseUp\n");
+    if (appMouseIsDown) {
+        postInternalMouseEvent(NSEventTypeLeftMouseUp, sharedInvisibleWindow());
+        appMouseIsDown = false;
+    }
+}

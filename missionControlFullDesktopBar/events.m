@@ -41,22 +41,6 @@ io_connect_t getIOKitEventDriver(void)
     return sEventDrvrRef;
 }
 
-void moveCursor(short x, short y)
-{
-    NXEventData event;
-    IOGPoint pos = {x, y};
-    kern_return_t err;
-    
-    bzero(&event, sizeof(NXEventData));
-    
-    IOOptionBits options = kIOHIDSetCursorPosition;
-    err = IOHIDPostEvent(getIOKitEventDriver(), NX_MOUSEMOVED, pos, &event, kNXEventDataVersion, 0, options);
-    
-    if (err != KERN_SUCCESS) {
-        NSLog(@"Warning: Failed to post mouse event. Error: %d", err);
-    }
-}
-
 void postLeftMouseButtonEvent(UInt32 eventType, short x, short y)
 {
     postLeftMouseButtonEventWithUserData(eventType, x, y, 0);
@@ -101,7 +85,7 @@ void postInternalMouseEvent(NSEventType type, NSWindow *window)
     [[NSApplication sharedApplication] postEvent:nsevent atStart:YES];
 }
 
-CGPoint currentMouseLocation()
+CGPoint currentMouseLocation(void)
 {
     CGEventRef event = CGEventCreate(NULL);
     
@@ -115,7 +99,7 @@ CGPoint currentMouseLocation()
     return loc;
 }
 
-CGPoint currentUnflippedMouseLocation()
+CGPoint currentUnflippedMouseLocation(void)
 {
     CGEventRef event = CGEventCreate(NULL);
     

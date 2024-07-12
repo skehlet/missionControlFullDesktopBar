@@ -1,6 +1,8 @@
 #import <Cocoa/Cocoa.h>
 #import "invisibleWindow.h"
 #import "app.h"
+#import "dragMethod.h"
+#import "util.h"
 
 static NSWindow *_invisibleWindow = nil;
 static InvisibleView *_invisibleView = nil;
@@ -9,7 +11,7 @@ static InvisibleView *_invisibleView = nil;
 - (void )_setPreventsActivation:(bool)preventsActivation;
 @end
 
-static void createSharedInvisibleWindowAndView()
+static void createSharedInvisibleWindowAndView(void)
 {
     // The idea behind this window is that it's invisible and it cannot activate, but it
     // receives mouse clicks and clicking anywhere on it will trigger the start of a drag
@@ -34,15 +36,15 @@ static void createSharedInvisibleWindowAndView()
                                                                      _invisibleWindow.frame.size.width,
                                                                      _invisibleWindow.frame.size.height)];
     [_invisibleWindow setContentView:_invisibleView];
-    [_invisibleView registerForDraggedTypes:@[NSStringPboardType]];
+    [_invisibleView registerForDraggedTypes:@[NSPasteboardTypeString]];
 }
 
-bool sharedInvisibleWindowExists()
+bool sharedInvisibleWindowExists(void)
 {
     return _invisibleWindow != nil;
 }
 
-NSWindow * sharedInvisibleWindow()
+NSWindow * sharedInvisibleWindow(void)
 {
     if (!_invisibleWindow) {
         createSharedInvisibleWindowAndView();
@@ -51,7 +53,7 @@ NSWindow * sharedInvisibleWindow()
     return _invisibleWindow;
 }
 
-InvisibleView * sharedInvisibleView()
+InvisibleView * sharedInvisibleView(void)
 {
     if (!_invisibleView) {
         createSharedInvisibleWindowAndView();
@@ -86,7 +88,7 @@ InvisibleView * sharedInvisibleView()
         return;
     }
     
-    printf("Received mouse down in invisible view\n");
+    printf("[%ld] Received mouse down in invisible view\n", getCurrentTimeInMicrosecondsSinceLastCall());
     [self createAbortTimer];
     
     // Having received a mouse down event, we initiate a drag, as when a drag is in
@@ -110,17 +112,20 @@ InvisibleView * sharedInvisibleView()
     
     draggingSession.animatesToStartingPositionsOnCancelOrFail = NO;
     draggingSession.draggingFormation = NSDraggingFormationNone;
+    
+    printf("[%ld] mouseDown done, waiting for drag event\n", getCurrentTimeInMicrosecondsSinceLastCall());
+    appMouseUp(); // this seems to fire the drag event quicker
 }
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
 {
-    printf("Received drag event, invoking Mission Control...\n");
+    printf("[%ld] Received drag event, invoking Mission Control...\n", getCurrentTimeInMicrosecondsSinceLastCall());
     // At this point we know the drag is successfully in progress, so we can invoke
     // Mission Control and immediately post an event to release the mouse button and
     // thus end the drag. With any luck, both the user and macOS should be none
     // the wiser.
     [self removeAbortTimer];
-    invokeMissionControl();
+    toggleMissionControl();
     cleanUpAndFinish();
     
     return NSDragOperationNone;
