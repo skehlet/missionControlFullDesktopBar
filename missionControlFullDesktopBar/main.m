@@ -6,7 +6,10 @@
 // To tail the logs:
 // log stream --process missionControlFullDesktopBar
 
-int main(int argc, const char *argv[])
+int g_argc;
+char **g_argv;
+
+int main(int argc, char *argv[])
 {
     @autoreleasepool {
         if (!accessibilityAvailable()) {
@@ -14,12 +17,15 @@ int main(int argc, const char *argv[])
             return 1;
         }
 
+        g_argc = argc;
+        g_argv = argv;
+        
         if (argc == 1) {
             // parent
             if (signalDaemon()) {
                 return 0;
             }
-            forkDaemon(argc, argv);
+            forkDaemon();
             os_log(OS_LOG_DEFAULT, "[%d] Parent forked, exiting\n", getpid());
             exit(0);
             
@@ -29,7 +35,7 @@ int main(int argc, const char *argv[])
             NSApplicationLoad();
             setupDaemon();
             signalDaemon();
-            int statusCode = NSApplicationMain(argc, argv); // never returns
+            int statusCode = NSApplicationMain(argc, (const char**)argv); // never returns
             return statusCode;
         }
     }

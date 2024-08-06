@@ -8,6 +8,9 @@ static CFMessagePortRef localPort = nil;
 static CFRunLoopSourceRef localPortRunLoopSource = nil;
 static bool isRunning = false;
 
+extern int g_argc;
+extern char **g_argv;
+
 // Sets the memory result points to to true if Mission Control is up. Returns true if able to
 // successfully determine the state of Mission Control, false if an error occurred.
 bool determineIfInMissionControl(bool *result)
@@ -91,6 +94,13 @@ void cleanUpAndFinish(void)
     isRunning = false;
 }
 
+void giveUpAndReexec(void)
+{
+    os_log(OS_LOG_DEFAULT, "Giving up and reexecing\n");
+    forkDaemon();
+    exit(0);
+}
+
 bool signalDaemon(void)
 {
     CFMessagePortRef remotePort = CFMessagePortCreateRemote(nil,
@@ -121,11 +131,11 @@ static CFDataRef receivedMessageAsDaemon(CFMessagePortRef port, SInt32 messageID
     CFDataGetBytes(data, CFRangeMake(0, sizeof(&junk)), (UInt8 *)&junk);
     if (isRunning) {
         os_log(OS_LOG_DEFAULT, "Daemon: received signal, but ignoring because I'm already running\n");
-    } else {
-        os_log(OS_LOG_DEFAULT, "Daemon: received signal, handling\n");
-        isRunning = true;
-        handleMissionControl();
+        return NULL;
     }
+    os_log(OS_LOG_DEFAULT, "Daemon: received signal, handling\n");
+    isRunning = true;
+    handleMissionControl();
     return NULL;
 }
 
@@ -153,7 +163,7 @@ void setupDaemon(void)
                                                                 usingBlock:^(NSNotification *notification) { quitDaemon(); }];
 }
 
-void forkDaemon(int argc, const char *argv[])
+void forkDaemon(void)
 {
     pid_t pid = fork();
     if (pid > 0) {
@@ -162,11 +172,11 @@ void forkDaemon(int argc, const char *argv[])
     }
 
     os_log(OS_LOG_DEFAULT, "[%d] Child reexecuting as daemon\n", getpid());
-    const char *newArgs[argc+2];
-    for(int i = 0; i < argc; ++i) {
-        newArgs[i] = argv[i];
+    const char *newArgs[g_argc+2];
+    for(int i = 0; i < g_argc; ++i) {
+        newArgs[i] = g_argv[i];
     }
-    newArgs[argc] = "--daemonized";
-    newArgs[argc+1] = NULL;
+    newArgs[g_argc] = "--daemonized";
+    newArgs[g_argc+1] = NULL;
     execve(newArgs[0], (char * const *)newArgs, NULL);
 }

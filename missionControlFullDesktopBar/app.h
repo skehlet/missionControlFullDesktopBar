@@ -10,9 +10,10 @@ bool determineIfInMissionControl(bool *result);
 void toggleMissionControl(void);
 void handleMissionControl(void);
 void cleanUpAndFinish(void);
+void giveUpAndReexec(void);
 bool signalDaemon(void);
 void setupDaemon(void);
-void forkDaemon(int argc, const char *argv[]);
+void forkDaemon(void);
 void ensureAppStopsAfterDuration(double durationMS);
 void removeAppStopTimer(void);
 

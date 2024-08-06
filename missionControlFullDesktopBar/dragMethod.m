@@ -76,7 +76,19 @@ void checkWindowClickable(CGPoint p, CFTimeInterval startTime)
         // A safeguard against the window never becoming visible
         os_log(OS_LOG_DEFAULT, "Error: Invisible window was never clickable... aborting!\n");
         removeClickableWindowTimer();
-        cleanUpAndFinish();
+        // it doesn't seem like it recovers from this, so... just reexec I guess
+        /*
+         2024-07-17 12:24:18.207606-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: Daemon: received signal, handling
+         2024-07-17 12:24:18.208151-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: [1361262] handleMissionControl: firing drag event then opening Mission Control...
+         2024-07-17 12:24:18.208447-0700 0xb5e2cf   Error       0x0                  88576  0    missionControlFullDesktopBar: (AppKit) [com.apple.AppKit:Window] Warning: -[NSWindow makeKeyWindow] called on NSWindow 0x13e834450 which returned NO from -[NSWindow canBecomeKeyWindow].
+         2024-07-17 12:24:18.208607-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: (AppKit) [com.apple.AppKit:Window] Window NSWindow 0x13e834450 ordered front from a non-active application and may order beneath the active application's windows.
+         2024-07-17 12:24:18.208632-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: (AppKit) [com.apple.AppKit:Window] order window front conditionally: 49a8 related: 0
+         2024-07-17 12:24:18.208653-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: [502] Waiting for window to be clickable
+         2024-07-17 12:24:18.718865-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: Error: Invisible window was never clickable... aborting!
+         2024-07-17 12:24:18.718904-0700 0xb5e2cf   Default     0x0                  88576  0    missionControlFullDesktopBar: Giving up and reexecing
+
+         */
+        giveUpAndReexec();
     }
 
 }

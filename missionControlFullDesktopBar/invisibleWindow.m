@@ -147,6 +147,8 @@ InvisibleView * sharedInvisibleView(void)
     abortTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 repeats:NO block:^(NSTimer *timer) {
         os_log(OS_LOG_DEFAULT, "Drag timer expired -- forcing clean up\n");
         cleanUpAndFinish();
+        // If this happens, reset the receivedMouseDown flag, we might need another real mouse down
+        self->receivedMouseDown = false;
     }];
 }
 
